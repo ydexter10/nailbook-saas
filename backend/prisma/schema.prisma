@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     Int            @id @default(autoincrement())
+  nome                   String
+  email                  String         @unique
+  senha                  String
+  role                   String         @default("USER")   // USER | ADMIN
+  ativo                  Boolean        @default(true)
+  // Perfil do Salão
+  nomeSalao              String         @default("")
+  whatsappDono           String         @default("")
+  corPrimaria            String         @default("#f43f5e")
+  logoBase64             String         @default("")
+  // Módulos
+  moduloAgendaAtivo      Boolean        @default(true)
+  moduloFinanceiroAtivo  Boolean        @default(false)
+  moduloWhatsappAtivo    Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  clientes               Cliente[]
+  profissionais          Profissional[]
+  agendamentos           Agendamento[]
+  transacoes             Transacao[]
+}
+
+model Cliente {
+  id           Int          @id @default(autoincrement())
+  nome         String
+  whatsapp     String
+  createdAt    DateTime     @default(now())
+  usuario      User         @relation(fields: [usuarioId], references: [id])
+  usuarioId    Int          @default(1)
+  agendamentos Agendamento[]
+
+  @@unique([whatsapp, usuarioId])
+}
+
+model Profissional {
+  id               Int           @id @default(autoincrement())
+  nome             String
+  especialidade    String
+  horariosTrabalho String        @default("[\"08:00\",\"09:00\",\"10:00\",\"11:00\",\"13:00\",\"14:00\",\"15:00\",\"16:00\",\"17:00\"]")
+  createdAt        DateTime      @default(now())
+  usuario          User          @relation(fields: [usuarioId], references: [id])
+  usuarioId        Int           @default(1)
+  agendamentos     Agendamento[]
+}
+
+model Agendamento {
+  id               Int          @id @default(autoincrement())
+  data             String
+  hora             String
+  status           String       @default("CONFIRMADO")
+  valorServico     Float
+  nomeServico      String
+  lembreteEnviado  Boolean      @default(false)
+  dataLembrete     String?
+  cliente          Cliente      @relation(fields: [clienteId], references: [id])
+  clienteId        Int
+  profissional     Profissional @relation(fields: [profissionalId], references: [id])
+  profissionalId   Int
+  usuario          User         @relation(fields: [usuarioId], references: [id])
+  usuarioId        Int          @default(1)
+  createdAt        DateTime     @default(now())
+  transacao        Transacao?
+}
+
+model Transacao {
+  id            Int          @id @default(autoincrement())
+  tipo          String       // RECEITA | DESPESA
+  descricao     String
+  valor         Float
+  data          String
+  categoria     String       @default("Geral")
+  usuario       User         @relation(fields: [usuarioId], references: [id])
+  usuarioId     Int
+  agendamento   Agendamento? @relation(fields: [agendamentoId], references: [id])
+  agendamentoId Int?         @unique
+  createdAt     DateTime     @default(now())
+}
